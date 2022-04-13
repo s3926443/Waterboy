@@ -1,10 +1,10 @@
 // C++ code
-#define BLYNK_PRINT Serial
+//#define BLYNK_PRINT Serial
 #include <Wire.h>
 #include <RTClib.h>
 #include <LiquidCrystal.h>
-#include <ESP8266_Lib.h>
-#include <BlynkSimpleShieldEsp8266.h>
+//#include <ESP8266_Lib.h>
+//#include <BlynkSimpleShieldEsp8266.h>
 RTC_DS1307 rtc;
 
 // moisture sensor ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -138,26 +138,25 @@ void CloseValve() {
   // include delay to allow it time to close
   // set isRunning
   isRunning = false;
-  delay(300000); // Wait for 5 mins to allow water to filter down before watering by moisture level
+  delay(3000); // Wait for 5 mins to allow water to filter down before watering by moisture level
 }
 
-void OpenValve() {
+void OpenValve(uint32_t currentTime) {
   // run function to open solanoid
   // include delay to allow it time to open
   // set isRunning
   isRunning = true;
+  lastStart = currentTime + maxWatering;
   lastWateringDay = today;
   delay(3000); // Wait for 3000 millisecond(s)
 }
 
-void DisplayOff()
-{
+void DisplayOff() {
   // Turn off the display:
   lcd.noDisplay();
   delay(500);
 }
-void DisplayOn()
-{
+void DisplayOn() {
   // Turn on the display:
   lcd.display();
   delay(2000);
@@ -211,8 +210,7 @@ bool CheckDrySoilMax() {
   
   return false;
 }
-int GetMoisturePercentage(int value)
-{
+int GetMoisturePercentage(int value) {
   int percentValue = 0;
   percentValue = map(value, wet, dry, 100, 0);
   return percentValue;
@@ -233,68 +231,53 @@ void loop() {
   int mins = now.minute();
   uint32_t epoch = now.unixtime();
   
-  if (isRunning)
-  {
+  if (isRunning) {
     uint32_t remaining = TimeRemaining(lastStart,epoch);
     lcd.clear();
     lcd.print("Watering for ");
     lcd.print(remaining);
     lcd.print(" seconds.");
-    if (TimeSince(lastStart,epoch) >= maxWatering or (CheckDrySoilMax()))
-    {
+    if (remaining <= 0 or (CheckDrySoilMax())) {
       CloseValve();
       return;
     }
-  	else 
-    {
+  	else {
       // run delay to loop and  end loop as we have nothing to check
       return;
     }
   } 
-  
+
   // now we know the day we can check if the schedule was triggered today.
   uint32_t remaining = TimeRemaining(lastCheck,epoch);
-  if (remaining <= 0)
-  {
-    if (CheckWateringDay() and not CheckDrySoilMax())
-    {
-      if (CheckWateringWindow())
-      {
-        OpenValve();
+  if (remaining <= 0) {
+    if (CheckWateringDay() and not CheckDrySoilMax()) {
+      if (CheckWateringWindow()) {
+        OpenValve(epoch);
         return;
       }
     }
 
     // check soil dryness, add a delay to rewatering as the water may not have filtered through yet.
-    if (CheckDrySoilMin())
-    {
-      OpenValve();
+    if (CheckDrySoilMin()) {
+      OpenValve(epoch);
       return;
     }
     
     // default delay 6 hours unless hot.
-    uint32_t delayValue = (1000 * 60 * 60 * 6);
-    int delayCode = 6;
+    uint32_t delayValue = (60 * 60 * 6);
     // check  time to delay next check
     // can we check todays forecast?
-    if (CheckTemp())
-    {
-      delayValue = (1000 * 60 * 60 * 3);
-      delayCode = 3;
+    if (CheckTemp()) {
+      delayValue = (60 * 60 * 3);
     }
-
-    lcd.clear();
-	lastCheck = epoch + delayValue;
+	  lastCheck = (epoch + delayValue);
   }
   
-  //lcd.clear();
-  //lcd.print("Idle for ");
-  //lcd.print(remaining / 60);
-  //lcd.print(" mins");
-  //lcd.print(day);
-  //lcd.print(" day");
+  lcd.clear();
+  lcd.print("Idle for ");
+  lcd.print(remaining / 60);
+  lcd.print(" mins");
 
   digitalWrite(LED_BUILTIN, HIGH);
   delay(1000); // Wait for 1000 millisecond(s)
   digitalWrite(LED_BUILTIN, LOW);
-}
