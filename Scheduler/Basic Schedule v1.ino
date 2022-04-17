@@ -224,10 +224,13 @@ void loop() {
 
   if (isRunning) {
     uint32_t remaining = TimeRemaining(lastStart, epoch);
-    lcd.clear();
-    lcd.print("Watering for ");
-    lcd.print(remaining);
-    lcd.print(" seconds.");
+
+  lcd.setCursor(0, 0);
+  lcd.print("Watering for ");
+  lcd.setCursor(0, 1);
+  lcd.print(remaining);
+  lcd.print(" secs");
+
     if (remaining <= 0 or (CheckDrySoilMax(percent))) {
       CloseValve();
       return;
@@ -275,7 +278,7 @@ void loop() {
     }
     lastCheck = (epoch + delayValue);
   }
-  lcd.clear();
+ // lcd.clear();
   uint32_t outTime = remaining / 60;
   String length = " mins";
   if (outTime > 60) {
