@@ -102,6 +102,8 @@ void CloseValve() {
   // include delay to allow it time to close
   // set isRunning
   isRunning = false;
+  // set LED to green
+  updateLED(true);
   delay(3000); // Wait for 5 mins to allow water to filter down before watering by moisture level
 }
 
@@ -112,6 +114,8 @@ void OpenValve(uint32_t currentTime) {
   isRunning = true;
   lastStart = currentTime + maxWatering;
   lastWateringDay = today;
+  // set LED to red
+  updateLED(false);
   delay(3000); // Wait for 3000 millisecond(s)
 }
 
@@ -215,6 +219,25 @@ int convertToPercent(int value)
   return percentValue;
 }
 
+void setLEDGreen() 
+{
+
+
+}
+void setLEDRed() 
+{
+
+  
+}
+void updateLED(bool value)
+{
+  if (value == true) {
+    setLEDGreen();
+  }
+  else {
+    setLEDRed();
+  }
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loop() {
 
@@ -321,6 +344,9 @@ void loop() {
     outTime = remaining;
     length = " secs";
   }
+  
+  // set LED to green
+  updateLED(true);
   
   lcd.setCursor(0, 0);
   lcd.print("Next check in ");
