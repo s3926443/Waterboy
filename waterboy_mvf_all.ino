@@ -9,15 +9,18 @@ RTC_DS1307 rtc;
 
 // Humidity Sensor ////////////////////////////////
 DFRobot_DHT11 DHT;
-#define DHT11_PIN 3
+#define DHT11_PIN A2
 
 // moisture sensor ////////////////////////////////////////////////////////////////////////////////////////////////
 int sensorPin = A0;
 int sensorValue = 0;
 int percent = 0;
 
-// LCD ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// LEDs ///////////////////////////////////////////////////////////////////////////////////////////////////////////
+int LEDRed = 2;
+int LEDGreen = 3;
 
+// LCD ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
 const int rs = 11, en = 12, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
@@ -47,6 +50,8 @@ void setup() {
   // Print a message to the LCD.
   lcd.print("WATER-BOY!");
 
+  pinMode(LEDRed, OUTPUT);
+  pinMode(LEDGreen, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
 
 
@@ -54,7 +59,7 @@ void setup() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // set variables
-bool isTesting = false;
+bool isTesting = true;
 bool isRunning = false;
 bool isDisplaying = false;
 int maxWatering = 300; //set time in seconds
@@ -64,6 +69,8 @@ const int dry = 1; // Value of the sensor when it is dry
 const int wet = 697; // Value of the sensor when it is wet
 float humi = 0;
 float temp = 0;
+bool redIsSet = false;
+bool greenIsSet = false;
 
 int lastWateringDay;
 // set day of the week by int; 0 = sun
@@ -72,19 +79,6 @@ int hour;
 int mins;
 uint32_t lastCheck = 0;
 uint32_t lastStart = 0;
-
-#define SUN                     0x01
-#define MON                     0x02
-#define TUE                     0x04
-#define WED                     0x08
-#define THR                     0x10
-#define FRI                     0x20
-#define SAT                     0x40
-#define EVERYDAY                (SUN | MON | TUE | WED | THR | FRI | SAT)
-
-char weekday[][4] = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -104,7 +98,7 @@ void CloseValve() {
   isRunning = false;
   // set LED to green
   updateLED(true);
-  delay(3000); // Wait for 5 mins to allow water to filter down before watering by moisture level
+  //Serial.print("\n close valve");
 }
 
 void OpenValve(uint32_t currentTime) {
@@ -116,18 +110,18 @@ void OpenValve(uint32_t currentTime) {
   lastWateringDay = today;
   // set LED to red
   updateLED(false);
-  delay(3000); // Wait for 3000 millisecond(s)
+  //Serial.print("\n open valve");
 }
 
 void DisplayOff() {
   // Turn off the display:
   lcd.noDisplay();
-  delay(500);
+  //Serial.print("\n Display off");
 }
 void DisplayOn() {
   // Turn on the display:
   lcd.display();
-  delay(2000);
+  //Serial.print("\n Display on");
 }
 
 bool CheckWateringDay() {
@@ -207,9 +201,7 @@ void printValuesToSerial()
     Serial.print(humi);
     Serial.println("%");
   }
-
 }
-
 
 /* Function to convert analog value to a percent value and return */
 int convertToPercent(int value)
@@ -221,13 +213,24 @@ int convertToPercent(int value)
 
 void setLEDGreen() 
 {
-
-
+  if (not greenIsSet) {
+    greenIsSet = true;
+    redIsSet = false;
+    digitalWrite(LEDGreen, HIGH);
+    digitalWrite(LEDRed, LOW);
+    Serial.print("\nSet LED Green");
+  }
 }
+
 void setLEDRed() 
 {
-
-  
+  if (not redIsSet) {
+    redIsSet = true;
+    greenIsSet = false;
+    digitalWrite(LEDRed, HIGH);
+    digitalWrite(LEDGreen, LOW);
+    Serial.print("\nSet LED Red");
+  }
 }
 void updateLED(bool value)
 {
@@ -256,6 +259,7 @@ void loop() {
    lastStart = epoch + maxWatering;
    maxSoilDryness = 200;
    hour = 6;
+   setLEDRed();
    isTesting = false;
   }
   /* Read the sensor into a variable */
@@ -271,7 +275,6 @@ void loop() {
   {
     /* Convert the analog sensor into a percent value and print every 5 seconds */
     percent = convertToPercent(sensorValue);
-    //delay(1000);
   }
 
   printValuesToSerial();
@@ -280,19 +283,17 @@ void loop() {
   if (isRunning) {
     uint32_t remaining = TimeRemaining(lastStart, epoch);
 
-  lcd.setCursor(0, 0);
-  lcd.print("Watering for ");
-  lcd.setCursor(0, 1);
-  lcd.print(remaining);
-  lcd.print(" seconds");
+    lcd.setCursor(0, 0);
+    lcd.print("Watering for ");
+    lcd.setCursor(0, 1);
+    lcd.print(remaining);
+    lcd.print(" seconds");
 
     if (remaining <= 0 or (CheckDrySoilMax(percent))) {
       CloseValve();
       return;
     }
     else {
-      // run delay to loop and  end loop as we have nothing to check
-      delay(1000); // Wait for 1000 millisecond(s)
       return;
     }
   }
