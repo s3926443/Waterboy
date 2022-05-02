@@ -20,6 +20,9 @@ int percent = 0;
 int LEDRed = 2;
 int LEDGreen = 3;
 
+// Solenoid ///////////////////////////////////////////////////////////////////////////////////////////////////////
+int solenoidPin = 13;
+
 // LCD ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
@@ -53,8 +56,7 @@ void setup() {
   pinMode(LEDRed, OUTPUT);
   pinMode(LEDGreen, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
-
-
+  pinMode(solenoidPin, OUTPUT);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -98,7 +100,10 @@ void CloseValve() {
   isRunning = false;
   // set LED to green
   updateLED(true);
-  //Serial.print("\n close valve");
+
+  digitalWrite(solenoidPin, LOW);       //Switch Solenoid OFF
+  delay(1000);                          //Wait 1 Second
+  Serial.print("\nClose Valve");
 }
 
 void OpenValve(uint32_t currentTime) {
@@ -110,7 +115,10 @@ void OpenValve(uint32_t currentTime) {
   lastWateringDay = today;
   // set LED to red
   updateLED(false);
-  //Serial.print("\n open valve");
+
+  digitalWrite(solenoidPin, HIGH);      //Switch Solenoid ON
+  delay(1000);                          //Wait 1 Second
+  Serial.print("\nOpen Valve");
 }
 
 void DisplayOff() {
@@ -260,6 +268,7 @@ void loop() {
    maxSoilDryness = 200;
    hour = 6;
    setLEDRed();
+   OpenValve(epoch);
    isTesting = false;
   }
   /* Read the sensor into a variable */
@@ -355,7 +364,7 @@ void loop() {
   lcd.print(outTime);
   lcd.print(length);
 
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(1000); // Wait for 1000 millisecond(s)
-  digitalWrite(LED_BUILTIN, LOW);
+  //digitalWrite(LED_BUILTIN, HIGH);
+  //delay(1000); // Wait for 1000 millisecond(s)
+  //digitalWrite(LED_BUILTIN, LOW);
 }
