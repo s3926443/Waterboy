@@ -10,7 +10,7 @@
 //#include <DFRobot_DHT11.h>
 
 // Grant's DHT11 sensor library
-#include <DHT.h>
+//#include <DHT.h>
 
 // RTC ////////////////////////////////
 RTC_DS1307 rtc;
