@@ -3,6 +3,9 @@
 #include <Wire.h>
 #include <RTClib.h>
 #include <LiquidCrystal.h>
+
+#include <TinyDHT.h>        // lightweit DHT sensor library
+
 // Viktor's DHT sensor library
 //#include <DFRobot_DHT11.h>
 
@@ -18,9 +21,10 @@ RTC_DS1307 rtc;
 //#define DHT11_PIN 3
 
 // Grant's DHT sensor
-#define pDHT 1
+// #define pDHT 1
+#define DHTPIN 1  
 #define DHTTYPE DHT11
-DHT dht( pDHT, DHTTYPE );
+DHT dht(DHTPIN, DHTTYPE);
 
 // moisture sensor ////////////////////////////////////////////////////////////////////////////////////////////////
 int sensorPin = A0;
@@ -267,17 +271,22 @@ void updateLED(bool value)
 void loop() {
 
    // Grant's DHT11
-  float fHumidity = dht.readHumidity();
-  float fTemperature = dht.readTemperature();
-  if ( isnan( fTemperature ) || isnan( fHumidity ) ) {
+ // float fHumidity = dht.readHumidity();
+ // float fTemperature = dht.readTemperature();
+  
+   int8_t h = dht.readHumidity();               // Read humidity
+  int16_t t = dht.readTemperature(TEMPTYPE);   // read temperature
+  
+  //if ( isnan( fTemperature ) || isnan( fHumidity ) ) {
+  if ( t == BAD_TEMP || h == BAD_HUM ) { // if error conditions (see TinyDHT.h)
     Serial.print( "\n" );
     Serial.println( "Failed to read from DHT" );
   } else {
-    Serial.print( fHumidity );
-    Serial.print(",");
-    Serial.println( fTemperature );
+  Serial.print( h );
+   Serial.print(",");
+   Serial.println( t );  
   } 
-  delay( 3000 );
+ delay( 3000 );
   
   const DateTime now = rtc.now();
   int today = now.dayOfTheWeek();
