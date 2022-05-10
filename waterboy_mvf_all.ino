@@ -3,13 +3,24 @@
 #include <Wire.h>
 #include <RTClib.h>
 #include <LiquidCrystal.h>
-#include <DFRobot_DHT11.h>
+// Viktor's DHT sensor library
+//#include <DFRobot_DHT11.h>
+
+// Grant's DHT11 sensor library
+#include <DHT.h>
+
 // RTC ////////////////////////////////
 RTC_DS1307 rtc;
 
 // Humidity Sensor ////////////////////////////////
-DFRobot_DHT11 DHT;
-#define DHT11_PIN A2
+// Viktor's DHT sensor
+//DFRobot_DHT11 DHT;
+//#define DHT11_PIN 3
+
+// Grant's DHT sensor
+#define pDHT 1
+#define DHTTYPE DHT11
+DHT dht( pDHT, DHTTYPE );
 
 // moisture sensor ////////////////////////////////////////////////////////////////////////////////////////////////
 int sensorPin = A0;
@@ -36,6 +47,9 @@ void setup() {
   // rtc
   while (!Serial);
   Serial.begin(9600);
+  
+  // Grant's DHT11
+  dht.begin();
   
   if (! rtc.begin()) {
     Serial.println("Couldn't find RTC");
@@ -252,14 +266,29 @@ void updateLED(bool value)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loop() {
 
+   // Grant's DHT11
+  float fHumidity = dht.readHumidity();
+  float fTemperature = dht.readTemperature();
+  if ( isnan( fTemperature ) || isnan( fHumidity ) ) {
+    Serial.print( "\n" );
+    Serial.println( "Failed to read from DHT" );
+  } else {
+    Serial.print( fHumidity );
+    Serial.print(",");
+    Serial.println( fTemperature );
+  } 
+  delay( 3000 );
+  
   const DateTime now = rtc.now();
   int today = now.dayOfTheWeek();
   int hour = now.hour();
   int mins = now.minute();
   uint32_t epoch = now.unixtime();
-  float humi = DHT.humidity;
-  float temp = DHT.temperature;
-  DHT.read(DHT11_PIN);
+  
+  //Viktor DHT
+  // float humi = DHT.humidity;
+  //float temp = DHT.temperature;
+  // DHT.read(DHT11_PIN);
   
   if (isTesting) {
    isRunning = true;
