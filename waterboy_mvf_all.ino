@@ -37,6 +37,7 @@ void setup() {
   // rtc
   while (!Serial);
   Serial.begin(9600);
+  Serial.println("Water-Boy Starting up!");
   
   // DHT11
   dht.begin();
