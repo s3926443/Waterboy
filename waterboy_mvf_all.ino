@@ -1,27 +1,15 @@
-// C++ code
+// C++ code for the Water Boy project, SparkIT group, COSC2635 BUILDING IT SYSTEMS, 2022
 
+// Libraries
 #include <Wire.h>
 #include <RTClib.h>
 #include <LiquidCrystal.h>
+#include <TinyDHT.h>       
 
-#include <TinyDHT.h>        // lightweit DHT sensor library
-
-// Viktor's DHT sensor library
-//#include <DFRobot_DHT11.h>
-
-// Grant's DHT11 sensor library
-//#include <DHT.h>
-
-// RTC ////////////////////////////////
+// Real Time Clock Module
 RTC_DS1307 rtc;
 
-// Humidity Sensor ////////////////////////////////
-// Viktor's DHT sensor
-//DFRobot_DHT11 DHT;
-//#define DHT11_PIN 3
-
-// Grant's DHT sensor
-// #define pDHT 1
+// DHT11 Humidity and Temperature Sensor
 #define DHTPIN 8  
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
@@ -44,15 +32,13 @@ int solenoidPin = 13;
 const int rs = 11, en = 12, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
-
 void setup() {
-  
   
   // rtc
   while (!Serial);
   Serial.begin(9600);
   
-  // Grant's DHT11
+  // DHT11
   dht.begin();
   
   if (! rtc.begin()) {
@@ -68,14 +54,17 @@ void setup() {
 
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
+  
   // Print a message to the LCD.
   lcd.print("WATER-BOY!");
 
+  // LEDs
   pinMode(LEDRed, OUTPUT);
   pinMode(LEDGreen, OUTPUT);
+  
+  // Relay
   pinMode(solenoidPin, OUTPUT);
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // set variables
 bool isTesting = true;
@@ -90,8 +79,8 @@ float humi = 0;
 float temp = 0;
 bool redIsSet = false;
 bool greenIsSet = false;
-
 int lastWateringDay;
+
 // set day of the week by int; 0 = sun
 int today;
 int hour;
@@ -125,7 +114,6 @@ void CloseValve() {
   isRunning = false;
   // set LED to green
   updateLED(true);
-
   digitalWrite(solenoidPin, LOW);       //Switch Solenoid OFF
   delay(1000);                          //Wait 1 Second
   Serial.print("\nClose Valve");
@@ -140,7 +128,6 @@ void OpenValve(uint32_t currentTime) {
   lastWateringDay = today;
   // set LED to red
   updateLED(false);
-
   digitalWrite(solenoidPin, HIGH);      //Switch Solenoid ON
   delay(1000);                          //Wait 1 Second
   Serial.print("\nOpen Valve");
@@ -326,15 +313,11 @@ void updateLED(bool value)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loop() {
 
-   // Grant's DHT11
- // float fHumidity = dht.readHumidity();
- // float fTemperature = dht.readTemperature();
+   // DHT11
+   int8_t h = dht.readHumidity();               
+  int16_t t = dht.readTemperature();   
   
-   int8_t h = dht.readHumidity();               // Read humidity
-  int16_t t = dht.readTemperature();   // read temperature
-  
-  //if ( isnan( fTemperature ) || isnan( fHumidity ) ) {
-  if ( t == BAD_TEMP || h == BAD_HUM ) { // if error conditions (see TinyDHT.h)
+    if ( t == BAD_TEMP || h == BAD_HUM ) { // if error conditions (see TinyDHT.h)
     Serial.print( "\n" );
     Serial.println( "Failed to read from DHT" );
   } else {
@@ -355,11 +338,7 @@ void loop() {
   secs = now.second();
   uint32_t epoch = now.unixtime();
   
-  //Viktor DHT
-  // float humi = DHT.humidity;
-  //float temp = DHT.temperature;
-  // DHT.read(DHT11_PIN);
-  
+    
   if (isTesting) {
    isRunning = true;
    maxWatering = 10;
@@ -473,8 +452,4 @@ void loop() {
   lcd.setCursor(0, 1);
   lcd.print(outTime);
   lcd.print(length);
-
-  //digitalWrite(LED_BUILTIN, HIGH);
-  //delay(1000); // Wait for 1000 millisecond(s)
-  //digitalWrite(LED_BUILTIN, LOW);
 }
