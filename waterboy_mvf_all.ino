@@ -22,7 +22,7 @@ RTC_DS1307 rtc;
 
 // Grant's DHT sensor
 // #define pDHT 1
-#define DHTPIN 1  
+#define DHTPIN 8  
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -331,16 +331,20 @@ void loop() {
  // float fTemperature = dht.readTemperature();
   
    int8_t h = dht.readHumidity();               // Read humidity
-  int16_t t = dht.readTemperature(TEMPTYPE);   // read temperature
+  int16_t t = dht.readTemperature();   // read temperature
   
   //if ( isnan( fTemperature ) || isnan( fHumidity ) ) {
   if ( t == BAD_TEMP || h == BAD_HUM ) { // if error conditions (see TinyDHT.h)
     Serial.print( "\n" );
     Serial.println( "Failed to read from DHT" );
   } else {
-  Serial.print( h );
-   Serial.print(",");
-   Serial.println( t );  
+  Serial.print( "\nHumidity " );
+   Serial.print(h);
+   Serial.print("% ");
+   Serial.print(", ");
+   Serial.print("Temperature ");
+   Serial.print(t);
+   Serial.println( "Deg C" );  
   } 
  delay( 3000 );
   
