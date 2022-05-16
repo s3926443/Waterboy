@@ -1,28 +1,16 @@
-// C++ code
+// C++ code for the Water Boy project, SparkIT group, COSC2635 BUILDING IT SYSTEMS, 2022
 
+// Libraries
 #include <Wire.h>
 #include <RTClib.h>
 #include <LiquidCrystal.h>
+#include <TinyDHT.h>       
 
-#include <TinyDHT.h>        // lightweit DHT sensor library
-
-// Viktor's DHT sensor library
-//#include <DFRobot_DHT11.h>
-
-// Grant's DHT11 sensor library
-//#include <DHT.h>
-
-// RTC ////////////////////////////////
+// Real Time Clock Module
 RTC_DS1307 rtc;
 
-// Humidity Sensor ////////////////////////////////
-// Viktor's DHT sensor
-//DFRobot_DHT11 DHT;
-//#define DHT11_PIN 3
-
-// Grant's DHT sensor
-// #define pDHT 1
-#define DHTPIN 1  
+// DHT11 Humidity and Temperature Sensor
+#define DHTPIN 8  
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
 
@@ -44,15 +32,14 @@ int solenoidPin = 13;
 const int rs = 11, en = 12, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
-
 void setup() {
-  
   
   // rtc
   while (!Serial);
   Serial.begin(9600);
+  Serial.println("Water-Boy Starting up!");
   
-  // Grant's DHT11
+  // DHT11
   dht.begin();
   
   if (! rtc.begin()) {
@@ -68,21 +55,23 @@ void setup() {
 
   // set up the LCD's number of columns and rows:
   lcd.begin(16, 2);
+  
   // Print a message to the LCD.
   lcd.print("WATER-BOY!");
 
+  // LEDs
   pinMode(LEDRed, OUTPUT);
   pinMode(LEDGreen, OUTPUT);
-  pinMode(LED_BUILTIN, OUTPUT);
+  
+  // Relay
   pinMode(solenoidPin, OUTPUT);
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // set variables
 bool isTesting = true;
 bool isRunning = false;
 bool isDisplaying = false;
-int maxWatering = 300; //set time in seconds
+int maxWatering = 10; //set time in seconds
 int minSoilDryness = 30;
 int maxSoilDryness = 90;
 const int dry = 1; // Value of the sensor when it is dry
@@ -91,12 +80,15 @@ float humi = 0;
 float temp = 0;
 bool redIsSet = false;
 bool greenIsSet = false;
-
 int lastWateringDay;
+
 // set day of the week by int; 0 = sun
 int today;
 int hour;
 int mins;
+int secs;
+
+String weekday[] = {"Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"};
 uint32_t lastCheck = 0;
 uint32_t lastStart = 0;
 
@@ -111,6 +103,11 @@ uint32_t TimeRemaining(uint32_t timer, uint32_t current) {
   }
   return timer - current;
 }
+void AddDelay(uint32_t delayTime, uint32_t current) {
+  lastCheck =  current + delayTime;
+  Serial.print("\n Add Delay ");
+  Serial.print(delayTime);
+}
 void CloseValve() {
   // run function to close solanoid
   // include delay to allow it time to close
@@ -118,7 +115,6 @@ void CloseValve() {
   isRunning = false;
   // set LED to green
   updateLED(true);
-
   digitalWrite(solenoidPin, LOW);       //Switch Solenoid OFF
   delay(1000);                          //Wait 1 Second
   Serial.print("\nClose Valve");
@@ -133,7 +129,6 @@ void OpenValve(uint32_t currentTime) {
   lastWateringDay = today;
   // set LED to red
   updateLED(false);
-
   digitalWrite(solenoidPin, HIGH);      //Switch Solenoid ON
   delay(1000);                          //Wait 1 Second
   Serial.print("\nOpen Valve");
@@ -209,8 +204,17 @@ int CheckTemp() {
 }
 
 /* Function to print the current analog and percent values to the serial monitor */
-void printValuesToSerial()
+void printValuesToSerial(int hour, int mins, int secs)
 {
+  Serial.print("\n");
+  Serial.print(weekday[today]);
+  Serial.print("\n");
+  Serial.print(hour);
+  Serial.print(":");
+  Serial.print(mins);
+  Serial.print(":");
+  Serial.print(secs);
+
   if (sensorValue != 0) {
     Serial.print("\n\nMoisture Analog Value: ");
     Serial.print(sensorValue);
@@ -228,6 +232,46 @@ void printValuesToSerial()
     Serial.println("%");
   }
 }
+/* Function to print the current analog and percent values to the serial monitor */
+void printValuesToLED(int hour, int mins, int secs)
+{
+  lcd.setCursor(0, 0);
+  lcd.print(weekday[today]);
+  lcd.setCursor(0, 1);
+  lcd.print(hour);
+  lcd.print(":");
+  lcd.print(mins);
+  lcd.print(":");
+  lcd.print(secs);
+  delay(1000); 
+
+  if (sensorValue != 0) {
+    lcd.setCursor(0, 0);
+    lcd.print("Moisture:");
+    lcd.setCursor(0, 1);
+    lcd.print(percent );
+    lcd.print(" %");
+    delay(1000); 
+  }
+
+  if (temp != 0) {
+
+    lcd.setCursor(0, 0);
+    lcd.print("Temperature:");
+    lcd.setCursor(0, 1);
+    lcd.print(temp );
+    lcd.print(" °C");
+    delay(1000); 
+
+    lcd.setCursor(0, 0);
+    lcd.print("Humidity:");
+    lcd.setCursor(0, 1);
+    lcd.print(humi );
+    lcd.print(" %");
+    delay(1000); 
+  }
+}
+
 
 /* Function to convert analog value to a percent value and return */
 int convertToPercent(int value)
@@ -270,35 +314,32 @@ void updateLED(bool value)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loop() {
 
-   // Grant's DHT11
- // float fHumidity = dht.readHumidity();
- // float fTemperature = dht.readTemperature();
+   // DHT11
+   int8_t h = dht.readHumidity();               
+  int16_t t = dht.readTemperature();   
   
-   int8_t h = dht.readHumidity();               // Read humidity
-  int16_t t = dht.readTemperature(TEMPTYPE);   // read temperature
-  
-  //if ( isnan( fTemperature ) || isnan( fHumidity ) ) {
-  if ( t == BAD_TEMP || h == BAD_HUM ) { // if error conditions (see TinyDHT.h)
+    if ( t == BAD_TEMP || h == BAD_HUM ) { // if error conditions (see TinyDHT.h)
     Serial.print( "\n" );
     Serial.println( "Failed to read from DHT" );
   } else {
-  Serial.print( h );
-   Serial.print(",");
-   Serial.println( t );  
+  Serial.print( "\nHumidity " );
+   Serial.print(h);
+   Serial.print("% ");
+   Serial.print(", ");
+   Serial.print("Temperature ");
+   Serial.print(t);
+   Serial.println( "Deg C" );  
   } 
  delay( 3000 );
   
   const DateTime now = rtc.now();
-  int today = now.dayOfTheWeek();
-  int hour = now.hour();
-  int mins = now.minute();
+  today = now.dayOfTheWeek();
+  hour = now.hour();
+  mins = now.minute();
+  secs = now.second();
   uint32_t epoch = now.unixtime();
   
-  //Viktor DHT
-  // float humi = DHT.humidity;
-  //float temp = DHT.temperature;
-  // DHT.read(DHT11_PIN);
-  
+    
   if (isTesting) {
    isRunning = true;
    maxWatering = 10;
@@ -324,9 +365,11 @@ void loop() {
     percent = convertToPercent(sensorValue);
   }
 
-  printValuesToSerial();
+  printValuesToSerial(hour,mins,secs);
 
   lcd.clear();
+  printValuesToLED(hour,mins,secs);
+
   if (isRunning) {
     uint32_t remaining = TimeRemaining(lastStart, epoch);
 
@@ -347,6 +390,7 @@ void loop() {
 
   // now we know the day we can check if the schedule was triggered today.
   uint32_t remaining = TimeRemaining(lastCheck, epoch);
+  uint32_t timeSinceLast = TimeSince(lastStart, epoch);
   if (remaining <= 0) {
     if (CheckWateringDay() and not CheckDrySoilMax(percent)) {
       if (CheckWateringWindow()) {
@@ -354,34 +398,42 @@ void loop() {
         return;
       }
     }
-
-    // check soil dryness, add a delay to rewatering as the water may not have filtered through yet.
-    if (CheckDrySoilMin(percent)) {
-      OpenValve(epoch);
-      return;
-    }
-
-    // default delay 6 hours unless hot.
     uint32_t delayValue = (60 * 60 * 6);
-    // check  time to delay next check
-    // can we check todays forecast?
-    if (CheckTemp()) {
-      delayValue = (60 * 60 * 3);
-    }
-    if (hour > 18 or hour < 6) {
-      int remainingHours = 0;
-      if (hour > 18) {
-        remainingHours = ((23-hour) + 5);
+    // check after 3 mins to let water filter down, then re water if needs more before adding delay.
+    if (timeSinceLast > 180) {
+      
+      // check soil dryness, add a delay to rewatering as the water may not have filtered through yet.
+      if (CheckDrySoilMin(percent)) {
+        OpenValve(epoch);
+        return;
+      }
+
+      // default delay 6 hours unless hot.
+      // check  time to delay next check
+      // can we check todays forecast?
+      if (CheckTemp()) {
+        delayValue = (60 * 60 * 3);
+      }
+      if (hour > 18 or hour < 6) {
+        int remainingHours = 0;
+        if (hour > 18) {
+          remainingHours = ((23-hour) + 5);
+
+        }
+        else {
+          remainingHours = (5-hour);
+        }
+        int remainingMins = (63-mins);
+        delayValue = ((remainingHours * 60 * 60) + remainingMins * 60);
 
       }
-      else {
-        remainingHours = (5-hour);
-      }
-      int remainingMins = (63-mins);
-      delayValue = ((remainingHours * 60 * 60) + remainingMins * 60);
     }
-    lastCheck = (epoch + delayValue);
+    else {
+        delayValue = 180;
+    }
+    AddDelay(delayValue, epoch);
   }
+  
   uint32_t outTime = remaining / 60;
   String length = " mins";
   if (outTime > 60) {
@@ -401,8 +453,4 @@ void loop() {
   lcd.setCursor(0, 1);
   lcd.print(outTime);
   lcd.print(length);
-
-  //digitalWrite(LED_BUILTIN, HIGH);
-  //delay(1000); // Wait for 1000 millisecond(s)
-  //digitalWrite(LED_BUILTIN, LOW);
 }
