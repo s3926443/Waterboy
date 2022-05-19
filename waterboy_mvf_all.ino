@@ -2,9 +2,9 @@
 
 // Libraries
 #include <Wire.h>
-#include <RTClib.h>
-#include <LiquidCrystal.h>
-#include <TinyDHT.h>       
+#include <RTClib.h>   // Library for Real Time Clock
+#include <LiquidCrystal.h>  // Library for LCD screen
+#include <TinyDHT.h>    // Library for Temperature and Humidity sensor   
 
 // Real Time Clock Module
 RTC_DS1307 rtc;
